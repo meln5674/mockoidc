@@ -25,7 +25,7 @@ const (
 	InvalidGrant         = "invalid_grant"
 	UnsupportedGrantType = "unsupported_grant_type"
 	InvalidScope         = "invalid_scope"
-	//UnauthorizedClient = "unauthorized_client"
+	// UnauthorizedClient = "unauthorized_client"
 	InternalServerError = "internal_server_error"
 
 	applicationJSON = "application/json"
@@ -127,12 +127,19 @@ func (m *MockOIDC) Authorize(rw http.ResponseWriter, req *http.Request) {
 	http.Redirect(rw, req, redirectURI.String(), http.StatusFound)
 }
 
+type seconds time.Duration
+
+func (s seconds) MarshalJSON() ([]byte, error) {
+	i := int64(time.Duration(s).Seconds())
+	return json.Marshal(&i)
+}
+
 type tokenResponse struct {
-	AccessToken  string        `json:"access_token,omitempty"`
-	RefreshToken string        `json:"refresh_token,omitempty"`
-	IDToken      string        `json:"id_token,omitempty"`
-	TokenType    string        `json:"token_type"`
-	ExpiresIn    time.Duration `json:"expires_in"`
+	AccessToken  string  `json:"access_token,omitempty"`
+	RefreshToken string  `json:"refresh_token,omitempty"`
+	IDToken      string  `json:"id_token,omitempty"`
+	TokenType    string  `json:"token_type"`
+	ExpiresIn    seconds `json:"expires_in"`
 }
 
 // Token implements the `token_endpoint` in OIDC and responds to requests
@@ -180,7 +187,7 @@ func (m *MockOIDC) Token(rw http.ResponseWriter, req *http.Request) {
 	tr := &tokenResponse{
 		RefreshToken: req.Form.Get("refresh_token"),
 		TokenType:    "bearer",
-		ExpiresIn:    m.AccessTTL,
+		ExpiresIn:    seconds(m.AccessTTL),
 	}
 	err = m.setTokens(tr, session, grantType)
 	if err != nil {
